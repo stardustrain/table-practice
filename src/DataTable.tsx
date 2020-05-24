@@ -138,7 +138,7 @@ export default function DataTable({
     <section>
       <h1>{title}</h1>
       <p>{isSelectAll ? data.length : selectedDataSize} item selected</p>
-      {true ? <SearchInput setSearchKeyword={setSearchKeyword} /> : null}
+      {searchable ? <SearchInput setSearchKeyword={setSearchKeyword} /> : null}
       {isLoading ? (
         <p>Loading...</p>
       ) : (

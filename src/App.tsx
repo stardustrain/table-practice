@@ -29,12 +29,13 @@ const columns = [
   },
 ]
 
-function App() {
+export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectableRows, setselectableRows] = useState(false)
   const [isDisableSelectAll, setIsDisableSelectAll] = useState(false)
   const [noTableHead, setNoTableHead] = useState(false)
   const [pagination, setPagination] = useState(false)
+  const [searchable, setSearchable] = useState(false)
 
   return (
     <div className="App">
@@ -68,6 +69,12 @@ function App() {
           Pagination
         </label>
       </div>
+      <div>
+        <label>
+          <input type="checkbox" onChange={() => setSearchable(!searchable)} checked={searchable} />
+          Search input
+        </label>
+      </div>
       <DataTable
         title="Cat list"
         columns={columns}
@@ -77,9 +84,8 @@ function App() {
         isDisableSelectAll={isDisableSelectAll}
         noTableHead={noTableHead}
         pagination={pagination}
+        searchable={searchable}
       />
     </div>
   )
 }
-
-export default App

@@ -31,8 +31,12 @@ interface GetSearchColumnSelectorParam {
   defaultSearchField?: string
 }
 export const getSearchColumnSelector = ({ columns, columnName, defaultSearchField }: GetSearchColumnSelectorParam) => {
-  if (!isNil(defaultSearchField)) {
-    return find(columns, column => column.name.toLowerCase() === defaultSearchField.toLowerCase())?.selector
+  const defaultSearchFieldSelector = find(
+    columns,
+    column => column.name.toLowerCase() === defaultSearchField?.toLowerCase()
+  )?.selector
+  if (defaultSearchFieldSelector) {
+    return defaultSearchFieldSelector
   }
 
   if (columnName) {
