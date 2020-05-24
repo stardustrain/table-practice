@@ -37,8 +37,8 @@ interface Props {
   defaultSearchField?: string
 }
 
-const selectedData = new Map()
 export const DEFAULT_PAGE_CHUNK_SIZE = 10
+const selectedData = new Map()
 const DEFAULT_CURRENT_PAGE_INDEX = 0
 
 export default function DataTable({
@@ -125,7 +125,7 @@ export default function DataTable({
   }, [pageChunkSize, sortedData])
 
   useEffect(() => {
-    setSortedData(getSortedData(data, sortOption))
+    setSortedData(getSortedData(sortedData, sortOption))
     // eslint-disable-next-line
   }, [sortOption])
 

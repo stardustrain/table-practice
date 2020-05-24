@@ -2,7 +2,7 @@ import React from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { isNil } from 'lodash'
 
-import { SortType } from './constants'
+import { SortType, SORT_TYPE, SORT_FIELD_SELECTOR_NAME } from './constants'
 import type { DataTableColumn } from './DataTable'
 
 interface Props {
@@ -27,7 +27,7 @@ export default function TableHead({
   setIsSelectAll,
 }: Props) {
   const onSelectAll = () => {
-    // SelectAll을 하고 data를 직접 핸들링 하는 시점에 selected data를 처리한다.
+    // NOTE: SelectAll을 하고 data를 직접 핸들링 하는 시점에 selected data를 처리한다.
     setIsSelectAll(!isSelectAll)
   }
 
@@ -37,14 +37,14 @@ export default function TableHead({
       return
     }
 
-    const isAlreadySorted = sortOption?.[0] === selector
+    const isAlreadySorted = sortOption?.[SORT_FIELD_SELECTOR_NAME] === selector
 
     if (isNil(sortOption) || !isAlreadySorted) {
       setSortOption([selector, SortType.ASC])
       return
     }
 
-    setSortOption([selector, sortOption[1] === SortType.ASC ? SortType.DESC : SortType.ASC])
+    setSortOption([selector, sortOption[SORT_TYPE] === SortType.ASC ? SortType.DESC : SortType.ASC])
   }
 
   return (
@@ -57,8 +57,8 @@ export default function TableHead({
         {columns.map(column => (
           <th key={column.name} data-sortfield={column.sortable && !isNil(sortOption) && column.selector}>
             {column.name}{' '}
-            {column.sortable && !isNil(sortOption) && sortOption[0] === column.selector
-              ? getSortIcon(sortOption[1])
+            {column.sortable && !isNil(sortOption) && sortOption[SORT_FIELD_SELECTOR_NAME] === column.selector
+              ? getSortIcon(sortOption[SORT_TYPE])
               : null}
           </th>
         ))}

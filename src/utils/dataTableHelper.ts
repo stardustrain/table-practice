@@ -1,6 +1,6 @@
 import { isNil, chunk, orderBy, find, first } from 'lodash'
 import type { DataTableColumn } from '../DataTable'
-import { SortType, SORT_FIELD_NAME, SORT_TYPE } from '../constants'
+import { SortType, SORT_FIELD_SELECTOR_NAME, SORT_TYPE } from '../constants'
 
 interface ChunkedDataParams {
   data: any[]
@@ -14,7 +14,7 @@ export const getSortOption = (defaultSortField?: string, sortableColumn?: string
 }
 
 export const getSortedData = (data: any[], sortOption: [string, SortType] | null) =>
-  sortOption ? orderBy(data, [sortOption[SORT_FIELD_NAME]], [sortOption[SORT_TYPE]]) : data
+  sortOption ? orderBy(data, [sortOption[SORT_FIELD_SELECTOR_NAME]], [sortOption[SORT_TYPE]]) : data
 
 export const getSearchKeywordData = (searchKeyword: string) => {
   const isIncludeColumnName = /\w\:\w/.test(searchKeyword)
