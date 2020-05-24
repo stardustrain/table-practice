@@ -10,11 +10,13 @@ type Cat = typeof cats[number]
 const columns = [
   {
     name: 'Name',
-    selector: (cat: Cat) => cat.breeds[0].name,
+    selector: 'breeds[0].name',
+    sortable: true,
+    render: (cat: Cat) => <span style={{ color: 'red' }}>{cat.breeds[0].name}</span>,
   },
   {
     name: 'Origin',
-    selector: (cat: Cat) => cat.breeds[0].origin,
+    selector: 'breeds[0].origin',
   },
   {
     name: 'ID',
@@ -23,6 +25,7 @@ const columns = [
   {
     name: 'URL',
     selector: 'url',
+    sortable: true,
   },
 ]
 

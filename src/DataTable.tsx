@@ -1,31 +1,39 @@
 import './DataTable.scss'
 
 import React, { useState, useEffect } from 'react'
-import { chunk } from 'lodash'
+import { chunk, isNil, find, orderBy, get, isFunction } from 'lodash'
 
+import TableHead from './TableHead'
 import Pagination from './Pagination'
 
-declare function selector(row: any): string
-
-interface DataTableColumns {
+export interface DataTableColumn {
   name: string
-  selector: string | typeof selector
+  selector: string
+  sortable?: boolean
+  render?: (data: any) => React.ReactNode
 }
 
 interface Props {
   title?: string
-  columns: DataTableColumns[]
+  columns: DataTableColumn[]
   data: any[]
   isLoading?: boolean
   selectableRows?: boolean
   isDisableSelectAll?: boolean
   noTableHead?: boolean
   pagination?: boolean
+  defaultSortField?: string
 }
 
 export const DEFAULT_PAGE_CHUNK_SIZE = 10
 const selectedData = new Map()
 const DEFAULT_CURRENT_PAGE_INDEX = 0
+const SORT_FIELD_NAME = 0
+const SORT_TYPE = 1
+export enum SortType {
+  ASC = 'asc',
+  DESC = 'desc',
+}
 
 interface ChunkedDataParams {
   data: any[]
@@ -33,6 +41,12 @@ interface ChunkedDataParams {
 }
 
 const getChunkedData = ({ data, pageChunkSize }: ChunkedDataParams) => chunk(data, pageChunkSize)
+const getSortOption = (defaultSortField?: string, sortableColumn?: string): [string, SortType] | null => {
+  const sortField = defaultSortField ?? sortableColumn
+  return isNil(sortField) ? null : [sortField, SortType.ASC]
+}
+const getSortedData = (data: any[], sortOption: [string, SortType]) =>
+  orderBy(data, [sortOption[SORT_FIELD_NAME]], [sortOption[SORT_TYPE]])
 
 export default function DataTable({
   title,
@@ -43,23 +57,29 @@ export default function DataTable({
   isDisableSelectAll,
   noTableHead,
   pagination,
+  defaultSortField,
 }: Props) {
+  // Select rows
   const [selectedDataSize, setSelectedDataSize] = useState(0)
   const [isSelectAll, setIsSelectAll] = useState(false)
-  const [pageChunkSize, setPageChunkSize] = useState(DEFAULT_PAGE_CHUNK_SIZE)
-  const [chunkedData, setChunkedData] = useState(
-    getChunkedData({
-      data,
-      pageChunkSize,
-    })
+  // Data sorting
+  const [sortOption, setSortOption] = useState<[string, SortType] | null>(
+    getSortOption(defaultSortField, find(columns, ['sortable', true])?.selector)
   )
+  const [sortedData, setSortedData] = useState(sortOption ? getSortedData(data, sortOption) : data)
+  // Pagination
+  const [pageChunkSize, setPageChunkSize] = useState(DEFAULT_PAGE_CHUNK_SIZE)
   const [currentPageIndex, setCurrentPageIndex] = useState(DEFAULT_CURRENT_PAGE_INDEX)
-  const [currentData, setCurrentData] = useState<any[]>(pagination ? chunkedData[currentPageIndex] : data)
-
-  const onSelectAll = () => {
-    // SelectAll을 하고 data를 직접 핸들링 하는 시점에 selected data를 처리한다.
-    setIsSelectAll(!isSelectAll)
-  }
+  // Select displaying data
+  const [chunkedData, setChunkedData] = useState(
+    pagination
+      ? getChunkedData({
+          data: sortedData,
+          pageChunkSize,
+        })
+      : sortedData
+  )
+  const [currentData, setCurrentData] = useState<any[]>(pagination ? chunkedData[currentPageIndex] : sortedData)
 
   const toggleSelectedData = (key: string) => {
     if (selectedData.get(key)) {
@@ -75,21 +95,21 @@ export default function DataTable({
     toggleSelectedData(e.target.value)
   }
 
-  const onClick = (id: string) => {
-    toggleSelectedData(id)
-  }
-
   useEffect(() => {
     setChunkedData(
       getChunkedData({
-        data,
+        data: sortedData,
         pageChunkSize,
       })
     )
-  }, [pageChunkSize])
+  }, [pageChunkSize, sortedData])
 
   useEffect(() => {
-    setCurrentData(pagination ? chunkedData[currentPageIndex] : data)
+    setSortedData(sortOption ? getSortedData(data, sortOption) : data)
+  }, [sortOption])
+
+  useEffect(() => {
+    setCurrentData(pagination ? chunkedData[currentPageIndex] : sortedData)
   }, [chunkedData, currentPageIndex, pagination])
 
   return (
@@ -101,34 +121,28 @@ export default function DataTable({
       ) : (
         <table>
           {noTableHead ? null : (
-            <thead>
-              <tr>
-                {selectableRows ? (
-                  <th>{isDisableSelectAll ? null : <input type="checkbox" onChange={onSelectAll} />}</th>
-                ) : null}
-                <th>Index</th>
-                {columns.map(column => (
-                  <th key={column.name}>{column.name}</th>
-                ))}
-              </tr>
-            </thead>
+            <TableHead
+              isSelectAll={isSelectAll}
+              selectableRows={selectableRows}
+              isDisableSelectAll={isDisableSelectAll}
+              sortOption={sortOption}
+              columns={columns}
+              setIsSelectAll={setIsSelectAll}
+              setSortOption={setSortOption}
+            />
           )}
           <tbody onChange={onChange}>
             {currentData.map((d, index) => (
-              <tr key={d.id} onClick={() => onClick(d.id)}>
+              <tr key={d.id}>
                 {selectableRows ? (
                   <td>
                     <input type="checkbox" value={d.id} checked={isSelectAll || selectedData.get(d.id)} />
                   </td>
                 ) : null}
                 <td>{index + 1 + pageChunkSize * currentPageIndex}</td>
-                {columns.map(column => {
-                  return (
-                    <td key={column.name}>
-                      {typeof column.selector === 'string' ? d[column.selector] : column.selector(d)}
-                    </td>
-                  )
-                })}
+                {columns.map(({ name, selector, render }) => (
+                  <td key={name}>{isFunction(render) ? render(d) : get(d, selector)}</td>
+                ))}
               </tr>
             ))}
           </tbody>
