@@ -2,7 +2,7 @@ import React from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import { isNil } from 'lodash'
 
-import { SortType } from './DataTable'
+import { SortType } from './constants'
 import type { DataTableColumn } from './DataTable'
 
 interface Props {

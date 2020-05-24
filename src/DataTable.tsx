@@ -1,10 +1,20 @@
 import './DataTable.scss'
 
 import React, { useState, useEffect } from 'react'
-import { chunk, isNil, find, orderBy, get, isFunction } from 'lodash'
+import { isNil, find, get, isFunction } from 'lodash'
+
+import {
+  getChunkedData,
+  getSearchColumnSelector,
+  getSearchKeywordData,
+  getSortOption,
+  getSortedData,
+} from './utils/dataTableHelper'
+import { SortType } from './constants'
 
 import TableHead from './TableHead'
 import Pagination from './Pagination'
+import SearchInput from './SearchInput'
 
 export interface DataTableColumn {
   name: string
@@ -23,30 +33,13 @@ interface Props {
   noTableHead?: boolean
   pagination?: boolean
   defaultSortField?: string
+  searchable?: boolean
+  defaultSearchField?: string
 }
 
-export const DEFAULT_PAGE_CHUNK_SIZE = 10
 const selectedData = new Map()
+export const DEFAULT_PAGE_CHUNK_SIZE = 10
 const DEFAULT_CURRENT_PAGE_INDEX = 0
-const SORT_FIELD_NAME = 0
-const SORT_TYPE = 1
-export enum SortType {
-  ASC = 'asc',
-  DESC = 'desc',
-}
-
-interface ChunkedDataParams {
-  data: any[]
-  pageChunkSize: number
-}
-
-const getChunkedData = ({ data, pageChunkSize }: ChunkedDataParams) => chunk(data, pageChunkSize)
-const getSortOption = (defaultSortField?: string, sortableColumn?: string): [string, SortType] | null => {
-  const sortField = defaultSortField ?? sortableColumn
-  return isNil(sortField) ? null : [sortField, SortType.ASC]
-}
-const getSortedData = (data: any[], sortOption: [string, SortType]) =>
-  orderBy(data, [sortOption[SORT_FIELD_NAME]], [sortOption[SORT_TYPE]])
 
 export default function DataTable({
   title,
@@ -58,7 +51,10 @@ export default function DataTable({
   noTableHead,
   pagination,
   defaultSortField,
+  searchable,
+  defaultSearchField,
 }: Props) {
+  const [searchKeyword, setSearchKeyword] = useState<string | null>(null)
   // Select rows
   const [selectedDataSize, setSelectedDataSize] = useState(0)
   const [isSelectAll, setIsSelectAll] = useState(false)
@@ -66,7 +62,7 @@ export default function DataTable({
   const [sortOption, setSortOption] = useState<[string, SortType] | null>(
     getSortOption(defaultSortField, find(columns, ['sortable', true])?.selector)
   )
-  const [sortedData, setSortedData] = useState(sortOption ? getSortedData(data, sortOption) : data)
+  const [sortedData, setSortedData] = useState(getSortedData(data, sortOption))
   // Pagination
   const [pageChunkSize, setPageChunkSize] = useState(DEFAULT_PAGE_CHUNK_SIZE)
   const [currentPageIndex, setCurrentPageIndex] = useState(DEFAULT_CURRENT_PAGE_INDEX)
@@ -96,26 +92,53 @@ export default function DataTable({
   }
 
   useEffect(() => {
+    if (isNil(searchKeyword)) {
+      return
+    }
+
+    if (!searchKeyword) {
+      setSortedData(getSortedData(data, sortOption))
+      return
+    }
+
+    const [columnName, keyword] = getSearchKeywordData(searchKeyword)
+    const searchColumnSelector = getSearchColumnSelector({ columns, columnName, defaultSearchField })
+    if (searchColumnSelector) {
+      setSortedData(
+        getSortedData(
+          data.filter(data => get(data, searchColumnSelector).toLowerCase() === keyword?.toLowerCase()),
+          sortOption
+        )
+      )
+    }
+    // eslint-disable-next-line
+  }, [searchKeyword])
+
+  useEffect(() => {
     setChunkedData(
       getChunkedData({
         data: sortedData,
         pageChunkSize,
       })
     )
+    // eslint-disable-next-line
   }, [pageChunkSize, sortedData])
 
   useEffect(() => {
-    setSortedData(sortOption ? getSortedData(data, sortOption) : data)
+    setSortedData(getSortedData(data, sortOption))
+    // eslint-disable-next-line
   }, [sortOption])
 
   useEffect(() => {
     setCurrentData(pagination ? chunkedData[currentPageIndex] : sortedData)
+    // eslint-disable-next-line
   }, [chunkedData, currentPageIndex, pagination])
 
   return (
     <section>
       <h1>{title}</h1>
       <p>{isSelectAll ? data.length : selectedDataSize} item selected</p>
+      {true ? <SearchInput setSearchKeyword={setSearchKeyword} /> : null}
       {isLoading ? (
         <p>Loading...</p>
       ) : (
@@ -132,7 +155,7 @@ export default function DataTable({
             />
           )}
           <tbody onChange={onChange}>
-            {currentData.map((d, index) => (
+            {currentData?.map((d, index) => (
               <tr key={d.id}>
                 {selectableRows ? (
                   <td>
@@ -150,7 +173,7 @@ export default function DataTable({
       )}
       {pagination ? (
         <Pagination
-          totalSize={data.length}
+          totalSize={sortedData.length}
           pageChunkSize={pageChunkSize}
           currentPageIndex={currentPageIndex}
           chunkedDataLength={chunkedData.length}
